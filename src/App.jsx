@@ -13,30 +13,41 @@ function Enter() {
   );
 }
 
-function CurrentDate() {
-  const now = new Date();
+function changeDate(currentDate, setCurrentDate, days) {
+  const newDate = new Date(currentDate);
+  newDate.setDate(newDate.getDate() + days);
+  setCurrentDate(newDate);
+}
 
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-
-  const currentDate = `${year}년 ${month}월 ${day}일`;
+function CurrentDate({ currentDate }) {
+  const year = currentDate.getFullYear();
+  const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+  const day = String(currentDate.getDate()).padStart(2, "0");
 
   return (
-    <>
-      <p>{currentDate}</p>
-    </>
+    <span>
+      {year}년 {month}월 {day}일
+    </span>
   );
 }
 
 function App() {
-  const [inputValue, setInputValue] = useState("");
-  const [todos, setTodos] = useState([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   return (
     <div>
       <h1>To Do</h1>
-      <CurrentDate />
+
+      <div>
+        <button onClick={() => changeDate(currentDate, setCurrentDate, -1)}>
+          ◀
+        </button>
+        <CurrentDate currentDate={currentDate} />
+        <button onClick={() => changeDate(currentDate, setCurrentDate, 1)}>
+          ▶
+        </button>
+      </div>
+
       <Enter />
     </div>
   );
