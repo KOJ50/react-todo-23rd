@@ -1,13 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "./assets/vite.svg";
 import heroImg from "./assets/hero.png";
 import "./App.css";
 
-function changeDate(currentDate, setCurrentDate, days) {
-  const newDate = new Date(currentDate);
-  newDate.setDate(newDate.getDate() + days);
-  setCurrentDate(newDate);
+function formatDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function DateNavigator({ onChangeDate }) {
+  return (
+    <div>
+      <button onClick={() => onChangeDate(-7)}>◀◀</button>
+      <button onClick={() => onChangeDate(-1)}>◀</button>
+      <button onClick={() => onChangeDate(1)}>▶</button>
+      <button onClick={() => onChangeDate(7)}>▶▶</button>
+    </div>
+  );
 }
 
 function CurrentDate({ currentDate }) {
@@ -16,79 +29,161 @@ function CurrentDate({ currentDate }) {
   const day = String(currentDate.getDate()).padStart(2, "0");
 
   return (
-    <span>
+    <p>
       {year}년 {month}월 {day}일
-    </span>
+    </p>
   );
 }
 
-function TodoInput({ inputValue, onChangeInput, onAddTodo }) {
+function TodoInput({ onAddTodo }) {
+  const [inputValue, setInputValue] = useState("");
+
+  function handleSubmit() {
+    if (!inputValue.trim()) return;
+    onAddTodo(inputValue);
+    setInputValue("");
+  }
+
+  function handleKeyDown(event) {
+    if (event.nativeEvent.isComposing) return;
+
+    if (event.key === "Enter") {
+      handleSubmit();
+    }
+  }
+
   return (
-    <section>
-      <input type="text" value={inputValue} onChange={onChangeInput} />
-      <button onClick={onAddTodo}>추가</button>
-    </section>
+    <div>
+      <input
+        type="text"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+      <button onClick={handleSubmit}>추가</button>
+    </div>
   );
 }
 
-function TodoList({ list }) {
+function TodoItem({ todo, onToggleTodo, onDeleteTodo }) {
   return (
-    <section>
-      <ul>
-        {list.map((item, index) => (
-          <li key={index}>{item}</li>
-        ))}
-      </ul>
-    </section>
+    <li>
+      <input
+        type="checkbox"
+        checked={todo.completed}
+        onChange={() => onToggleTodo(todo.id)}
+      />
+      <span
+        style={{
+          textDecoration: todo.completed ? "line-through" : "none",
+        }}
+      >
+        {todo.text}
+      </span>
+      <button onClick={() => onDeleteTodo(todo.id)}>X</button>
+    </li>
   );
+}
+
+function TodoList({ todos, onToggleTodo, onDeleteTodo }) {
+  return (
+    <ul>
+      {todos.map((todo) => (
+        <TodoItem
+          key={todo.id}
+          todo={todo}
+          onToggleTodo={onToggleTodo}
+          onDeleteTodo={onDeleteTodo}
+        />
+      ))}
+    </ul>
+  );
+}
+
+function TodoCount({ todos }) {
+  const remainingCount = todos.filter((todo) => !todo.completed).length;
+
+  return <p>남은 할 일 {remainingCount}개</p>;
 }
 
 function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [inputValue, setInputValue] = useState(""); // 입력창 상태
-  const [list, setList] = useState([]); // 리스트 배열 상태
 
-  // 입력값 변경 시 호출되는 핸들러
-  const handleChange = (e) => setInputValue(e.target.value);
-  // 추가 버튼 클릭 시
-  const handleAdd = () => {
-    if (inputValue.trim() !== "") {
-      setList([...list, inputValue]); // 기존 리스트에 추가
-      setInputValue(""); // 입력창 초기화
-    }
-  };
+  const [todosByDate, setTodosByDate] = useState(() => {
+    const savedTodos = localStorage.getItem("todosByDate");
+    return savedTodos ? JSON.parse(savedTodos) : {};
+  });
+
+  const dateKey = formatDateKey(currentDate);
+  const currentTodos = todosByDate[dateKey] || [];
+
+  useEffect(() => {
+    localStorage.setItem("todosByDate", JSON.stringify(todosByDate));
+  }, [todosByDate]);
+
+  function changeDate(days) {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + days);
+    setCurrentDate(newDate);
+  }
+
+  function addTodo(text) {
+    const newTodo = {
+      id: Date.now(),
+      text,
+      completed: false,
+    };
+
+    setTodosByDate((prev) => {
+      const previousTodos = prev[dateKey] || [];
+
+      return {
+        ...prev,
+        [dateKey]: [...previousTodos, newTodo],
+      };
+    });
+  }
+
+  function toggleTodo(id) {
+    setTodosByDate((prev) => {
+      const updatedTodos = (prev[dateKey] || []).map((todo) =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo,
+      );
+
+      return {
+        ...prev,
+        [dateKey]: updatedTodos,
+      };
+    });
+  }
+
+  function deleteTodo(id) {
+    setTodosByDate((prev) => {
+      const updatedTodos = (prev[dateKey] || []).filter(
+        (todo) => todo.id !== id,
+      );
+
+      return {
+        ...prev,
+        [dateKey]: updatedTodos,
+      };
+    });
+  }
 
   return (
     <div>
-      <header>
-        <h1>To Do</h1>
-      </header>
+      <h1>To Do</h1>
 
-      <main>
-        <section>
-          <button onClick={() => changeDate(currentDate, setCurrentDate, -7)}>
-            ◀◀
-          </button>
-          <button onClick={() => changeDate(currentDate, setCurrentDate, -1)}>
-            ◀
-          </button>
-          <CurrentDate currentDate={currentDate} />
-          <button onClick={() => changeDate(currentDate, setCurrentDate, 1)}>
-            ▶
-          </button>
-          <button onClick={() => changeDate(currentDate, setCurrentDate, 7)}>
-            ▶▶
-          </button>
-        </section>
-        <section>
-          <TodoInput
-            inputValue={inputValue}
-            onChangeInput={handleChange}
-            onAddTodo={handleAdd}
-          />
-          <TodoList list={list} />
-        </section>
-      </main>
+      <DateNavigator onChangeDate={changeDate} />
+      <CurrentDate currentDate={currentDate} />
+
+      <TodoInput onAddTodo={addTodo} />
+      <TodoCount todos={currentTodos} />
+      <TodoList
+        todos={currentTodos}
+        onToggleTodo={toggleTodo}
+        onDeleteTodo={deleteTodo}
+      />
     </div>
   );
 }
