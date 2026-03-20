@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "./assets/vite.svg";
-import heroImg from "./assets/hero.png";
+import { useEffect, useState } from "react";
+import CurrentDate from "./components/CurrentDate";
+import DateNavigator from "./components/DateNavigator";
+import TodoInput from "./components/TodoInput";
+import TodoCount from "./components/TodoCount";
+import TodoList from "./components/TodoList";
 import "./App.css";
 
 function formatDateKey(date) {
@@ -10,100 +12,6 @@ function formatDateKey(date) {
   const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
-}
-
-function DateNavigator({ onChangeDate }) {
-  return (
-    <div>
-      <button onClick={() => onChangeDate(-7)}>◀◀</button>
-      <button onClick={() => onChangeDate(-1)}>◀</button>
-      <button onClick={() => onChangeDate(1)}>▶</button>
-      <button onClick={() => onChangeDate(7)}>▶▶</button>
-    </div>
-  );
-}
-
-function CurrentDate({ currentDate }) {
-  const year = currentDate.getFullYear();
-  const month = String(currentDate.getMonth() + 1).padStart(2, "0");
-  const day = String(currentDate.getDate()).padStart(2, "0");
-
-  return (
-    <p>
-      {year}년 {month}월 {day}일
-    </p>
-  );
-}
-
-function TodoInput({ onAddTodo }) {
-  const [inputValue, setInputValue] = useState("");
-
-  function handleSubmit() {
-    if (!inputValue.trim()) return;
-    onAddTodo(inputValue);
-    setInputValue("");
-  }
-
-  function handleKeyDown(event) {
-    if (event.nativeEvent.isComposing) return;
-
-    if (event.key === "Enter") {
-      handleSubmit();
-    }
-  }
-
-  return (
-    <div>
-      <input
-        type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-      />
-      <button onClick={handleSubmit}>추가</button>
-    </div>
-  );
-}
-
-function TodoItem({ todo, onToggleTodo, onDeleteTodo }) {
-  return (
-    <li>
-      <input
-        type="checkbox"
-        checked={todo.completed}
-        onChange={() => onToggleTodo(todo.id)}
-      />
-      <span
-        style={{
-          textDecoration: todo.completed ? "line-through" : "none",
-        }}
-      >
-        {todo.text}
-      </span>
-      <button onClick={() => onDeleteTodo(todo.id)}>X</button>
-    </li>
-  );
-}
-
-function TodoList({ todos, onToggleTodo, onDeleteTodo }) {
-  return (
-    <ul>
-      {todos.map((todo) => (
-        <TodoItem
-          key={todo.id}
-          todo={todo}
-          onToggleTodo={onToggleTodo}
-          onDeleteTodo={onDeleteTodo}
-        />
-      ))}
-    </ul>
-  );
-}
-
-function TodoCount({ todos }) {
-  const remainingCount = todos.filter((todo) => !todo.completed).length;
-
-  return <p>남은 할 일 {remainingCount}개</p>;
 }
 
 function App() {
@@ -120,12 +28,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem("todosByDate", JSON.stringify(todosByDate));
   }, [todosByDate]);
-
-  function changeDate(days) {
-    const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() + days);
-    setCurrentDate(newDate);
-  }
 
   function addTodo(text) {
     const newTodo = {
@@ -171,19 +73,42 @@ function App() {
   }
 
   return (
-    <div>
-      <h1>To Do</h1>
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200 px-4 py-10">
+      <div className="mx-auto max-w-2xl rounded-3xl bg-slate-100/80 p-6 shadow-xl backdrop-blur">
+        <header className="mb-8 text-center">
+          <h1 className="text-4xl font-extrabold tracking-tight text-slate-800">
+            To Do
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            날짜별로 할 일을 정리해보세요
+          </p>
+        </header>
 
-      <DateNavigator onChangeDate={changeDate} />
-      <CurrentDate currentDate={currentDate} />
+        <DateNavigator
+          currentDate={currentDate}
+          setCurrentDate={setCurrentDate}
+        />
 
-      <TodoInput onAddTodo={addTodo} />
-      <TodoCount todos={currentTodos} />
-      <TodoList
-        todos={currentTodos}
-        onToggleTodo={toggleTodo}
-        onDeleteTodo={deleteTodo}
-      />
+        <div className="mb-4 flex justify-center">
+          <CurrentDate currentDate={currentDate} />
+        </div>
+
+        <section className="mb-4">
+          <TodoInput onAddTodo={addTodo} />
+        </section>
+
+        <section className="mb-4">
+          <TodoCount todos={currentTodos} />
+        </section>
+
+        <section>
+          <TodoList
+            todos={currentTodos}
+            onToggleTodo={toggleTodo}
+            onDeleteTodo={deleteTodo}
+          />
+        </section>
+      </div>
     </div>
   );
 }
